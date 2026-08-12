@@ -1,6 +1,6 @@
 /**
  * @file test\ABA_HLS.cpp
- * @brief 用于串联ABA代码的所有计算部�?,输入仅有q，dq，tau，输出为ddq
+ * @brief 用于串联ABA代码的所有计算部分,输入仅有q，dq，tau，输出为ddq
  *
  *
  * @author YZJ
@@ -50,7 +50,7 @@ void ABA(
     p_fina(v,h,p);
 
     // 逆推
-    back_pass(I_spa,p,tau,c,E,F,I_A,p_A,U,D,inv_D,u,I_a,p_a);
+    back_pass(I_spa,p,tau,c,E,F,U,inv_D,u);
 
     // 正推
     tip_pass3(E, F, c, inv_D, u, U, ddq);

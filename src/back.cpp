@@ -113,139 +113,142 @@ void back_pass(
     const data_t c[DOF][6],
     const data_t E[DOF][3][3],
     const data_t F[DOF][3][3],
-    data_t I_A[DOF][6][6],
-    data_t p_A[DOF][6],
     data_t U[DOF][6],
-    data_t D[DOF],
     data_t inv_D[DOF],
-    data_t u[DOF],
-    data_t I_a[DOF][6][6],
-    data_t p_a[DOF][6]
+    data_t u[DOF]
 )
 {
-    for (int i = DOF-1; i >= 0; i--)
+    // 当前关节数据
+    data_t IA_cur[6][6];
+    data_t Ia_cur[6][6];
+    data_t pA_cur[6];
+    data_t pa_cur[6];
+
+    // 子关节已经传播到当前关节坐标系的贡献
+    data_t child_I[6][6];
+    data_t child_p[6];
+
+    /*
+     * 第一轮计算末端关节。
+     * 末端没有子关节，所以子关节贡献初始化为零。
+     */
+    for (int r = 0; r < 6; r++)
     {
-        if(i==DOF-1)
+        child_p[r] = 0.0f;
+
+        for (int col = 0; col < 6; col++)
         {
-            // 计算I^A
-            for(int j = 0;j<6;j++)
-            {
-                for(int k = 0;k<6;k++)
-                {
-                    I_A[i][j][k] = I_spa[i][j][k];
-                }
-            }
-
-            // 计算p^A
-            for (int l = 0; l < 6; l++)
-            {
-                p_A[i][l] = p[i][l];
-            }
-
-            // 计算U
-            for(int m = 0;m<6;m++)
-            {
-                U[i][m] = I_A[i][m][2];
-            }
-            
-            // 计算D(球铰关节就变成3*3矩阵)
-            D[i] = U[i][2];
-        
-            // 计算u,不要忘记括号
-            u[i] = tau[i] - (p_A[i][2]);
-
-            // 将除法转换为乘法
-            inv_D[i] = 1.0f / D[i];
-
-            // 计算I_a
-            for(int ii = 0;ii<6;ii++)
-            {
-                I_a[i][ii][0] = I_A[i][ii][0]-U[i][ii]*U[i][0]*inv_D[i];
-                I_a[i][ii][1] = I_A[i][ii][1]-U[i][ii]*U[i][1]*inv_D[i];
-                I_a[i][ii][2] = I_A[i][ii][2]-U[i][ii]*U[i][2]*inv_D[i];
-                I_a[i][ii][3] = I_A[i][ii][3]-U[i][ii]*U[i][3]*inv_D[i];
-                I_a[i][ii][4] = I_A[i][ii][4]-U[i][ii]*U[i][4]*inv_D[i];
-                I_a[i][ii][5] = I_A[i][ii][5]-U[i][ii]*U[i][5]*inv_D[i];
-            }
-
-            // 计算p_a
-            for(int jj = 0;jj<6;jj++)
-            {
-                p_a[i][jj] = p_A[i][jj] + (I_a[i][jj][0]*c[i][0]+I_a[i][jj][1]*c[i][1]+I_a[i][jj][2]*c[i][2]+I_a[i][jj][3]*c[i][3]
-                             +I_a[i][jj][4]*c[i][4]+I_a[i][jj][5]*c[i][5]) + U[i][jj]*inv_D[i]*u[i];
-            }
-
-        }
-        else
-        {
-            // 计算I^A
-            // 首先计算I^A的累加项
-            // step1：x_lam的转置
-            data_t child_inertia[6][6];
-
-            transform_inertia_ef(
-                E[i + 1],
-                F[i + 1],
-                I_a[i + 1],
-                child_inertia
-            );
-
-            for (int row = 0; row < 6; row++)
-            {
-                for (int col = 0; col < 6; col++)
-                {
-                    I_A[i][row][col] =
-                        I_spa[i][row][col] +
-                        child_inertia[row][col];
-                }
-            }
-            
-            // 计算p^A
-            data_t child_force[6];
-
-            f_mat_cal(
-                E[i + 1],
-                F[i + 1],
-                p_a[i + 1],
-                child_force
-            );
-
-            for (int k = 0; k < 6; k++)
-                p_A[i][k] = p[i][k] + child_force[k];
-
-            // 计算U
-            for(int m = 0;m<6;m++)
-            {
-                U[i][m] = I_A[i][m][2];
-            }
-            
-            // 计算D(球铰关节就变成3*3矩阵)
-            D[i] = U[i][2];
-        
-            // 计算u
-            u[i] = tau[i] - (p_A[i][2]);
-
-            // 将除法转换为乘法
-            inv_D[i] = 1.0f / D[i];
-
-            // 计算I_a
-            for(int ii = 0;ii<6;ii++)
-            {
-                I_a[i][ii][0] = I_A[i][ii][0]-U[i][ii]*U[i][0]*inv_D[i];
-                I_a[i][ii][1] = I_A[i][ii][1]-U[i][ii]*U[i][1]*inv_D[i];
-                I_a[i][ii][2] = I_A[i][ii][2]-U[i][ii]*U[i][2]*inv_D[i];
-                I_a[i][ii][3] = I_A[i][ii][3]-U[i][ii]*U[i][3]*inv_D[i];
-                I_a[i][ii][4] = I_A[i][ii][4]-U[i][ii]*U[i][4]*inv_D[i];
-                I_a[i][ii][5] = I_A[i][ii][5]-U[i][ii]*U[i][5]*inv_D[i];
-            }
-
-            // 计算p_a
-            for(int jj = 0;jj<6;jj++)
-            {
-                p_a[i][jj] = p_A[i][jj] + (I_a[i][jj][0]*c[i][0]+I_a[i][jj][1]*c[i][1]+I_a[i][jj][2]*c[i][2]+I_a[i][jj][3]*c[i][3]
-                           +I_a[i][jj][4]*c[i][4]+I_a[i][jj][5]*c[i][5]) + U[i][jj]*inv_D[i]*u[i];
-            }
+            child_I[r][col] = 0.0f;
         }
     }
-    
+
+    /*
+     * 从末端向基座递推：
+     * 5、4、3、2、1、0
+     */
+    for (int i = DOF - 1; i >= 0; i--)
+    {
+        /*
+         * 1. 当前关节的复合惯量和偏置力
+         *
+         * 末端第一轮child是零，所以自然得到：
+         * IA_cur = I_spa[5]
+         * pA_cur = p[5]
+         */
+        for (int r = 0; r < 6; r++)
+        {
+            pA_cur[r] =
+                p[i][r] + child_p[r];
+
+            for (int col = 0; col < 6; col++)
+            {
+                IA_cur[r][col] =
+                    I_spa[i][r][col] +
+                    child_I[r][col];
+            }
+        }
+
+        /*
+         * 2. U = IA*S
+         *
+         * S=[0,0,1,0,0,0]^T，
+         * 因此U就是IA的第2列。
+         */
+        for (int r = 0; r < 6; r++)
+        {
+            U[i][r] = IA_cur[r][2];
+        }
+
+        /*
+         * 3. 当前关节标量
+         */
+        const data_t D_cur = U[i][2];
+
+        inv_D[i] = 1.0f / D_cur;
+        u[i] = tau[i] - pA_cur[2];
+
+        /*
+         * 4. 关节消元后的惯量
+         *
+         * Ia = IA - U*U^T/D
+         */
+        for (int r = 0; r < 6; r++)
+        {
+            for (int col = 0; col < 6; col++)
+            {
+                Ia_cur[r][col] =
+                    IA_cur[r][col] -
+                    U[i][r] *
+                    U[i][col] *
+                    inv_D[i];
+            }
+        }
+
+        /*
+         * 5. 关节消元后的偏置力
+         *
+         * pa = pA + Ia*c + U*u/D
+         */
+        const data_t u_over_D =
+            u[i] * inv_D[i];
+
+        for (int r = 0; r < 6; r++)
+        {
+            const data_t Iac =
+                Ia_cur[r][0] * c[i][0] +
+                Ia_cur[r][1] * c[i][1] +
+                Ia_cur[r][2] * c[i][2] +
+                Ia_cur[r][3] * c[i][3] +
+                Ia_cur[r][4] * c[i][4] +
+                Ia_cur[r][5] * c[i][5];
+
+            pa_cur[r] =
+                pA_cur[r] +
+                Iac +
+                U[i][r] * u_over_D;
+        }
+
+        /*
+         * 6. 将当前关节结果传播给它的父关节
+         *
+         * 当前是关节i，父关节是i-1。
+         * 当i==0时已经没有父关节，所以不再传播。
+         */
+        if (i > 0)
+        {
+            transform_inertia_ef(
+                E[i],
+                F[i],
+                Ia_cur,
+                child_I
+            );
+
+            f_mat_cal(
+                E[i],
+                F[i],
+                pa_cur,
+                child_p
+            );
+        }
+    }
 }

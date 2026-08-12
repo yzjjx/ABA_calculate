@@ -51,7 +51,7 @@ void f_mat_cal(
 }
 
 // 点积计算函数
-static data_t dot3(
+static inline data_t dot3(
     const data_t a0,
     const data_t a1,
     const data_t a2,
