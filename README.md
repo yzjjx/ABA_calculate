@@ -121,3 +121,34 @@ void tip_pass3(
 1、因为a_s和a_i、a_parent计算不需要二维数组，因此更换为一维
 2、将括号内的计算单独提出来，将除法转换为乘法
 3、舍弃一定为0的计算结果，重新写循环ddq
+## 修改2：彻底删除X_lam
+因为公式为:
+$$
+ X_{\lambda1} = \ ^1X_0=\begin{bmatrix} R_1^T &0 \\
+
+R_1^T[p_1]_{\times} & R_1^T \end{bmatrix} 
+$$
+可以看到左上角矩阵与右下角矩阵是一个矩阵，定义：
+$$
+E =  R_1^T   
+F =  R_1^T[p_1]_{\times}
+$$
+因此整理为紧凑格式，即保存E[3][3]和F[3][3]即可
+因为空间速度向量可以分为两个三维部分，因此矩阵乘法可以使用块矩阵乘法，也就是：
+$$
+\begin{bmatrix}\omega _{new}
+ \\
+v _{new}
+\end{bmatrix}=\begin{bmatrix}
+ E & 0\\
+F  &E
+\end{bmatrix}\ast \begin{bmatrix}\omega
+ \\
+v 
+\end{bmatrix}=\begin{bmatrix}
+ E*\omega\\
+F*\omega+E*v
+\end{bmatrix}
+$$
+
+删除所有不用或者重复使用的函数、变量

@@ -7,7 +7,7 @@
 
 void h_fina(
     const data_t I_spa[DOF][6][6],
-    data_t v[DOF][6],
+    const data_t v[DOF][6],
     data_t h[DOF][6]
 );
 

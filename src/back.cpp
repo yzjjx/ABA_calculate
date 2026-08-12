@@ -11,6 +11,8 @@
 #include <cmath>
 #include <v_ori.h>
 #include <cal_p.h>
+#include <block_mat.h>
+#include <back.h>
 
 // 因为在test_T_R_out已经定义，下面不再定义
 // typedef float data_t;
@@ -110,18 +112,19 @@ void back_pass(
     const data_t tau[DOF],
     const data_t c[DOF][6],
     const data_t X_lam[DOF][6][6],
+    const data_t E[DOF][3][3],
+    const data_t F[DOF][3][3],
     data_t I_A[DOF][6][6],
     data_t p_A[DOF][6],
     data_t U[DOF][6],
     data_t D[DOF],
+    data_t inv_D[DOF],
     data_t u[DOF],
     data_t I_a[DOF][6][6],
     data_t p_a[DOF][6]
 )
 {
-    data_t S[6] = {0, 0, 1, 0, 0, 0};
     data_t X_lam_Trans[DOF][6][6];
-    data_t inv_D[DOF];
     for (int i = DOF-1; i >= 0; i--)
     {
         if(i==DOF-1)
@@ -202,16 +205,17 @@ void back_pass(
             }
 
             // 计算p^A
-            for (int l = 0; l < 6; l++)
-            {
-                p_A[i][l] = p[i][l]+
-                            X_lam_Trans[i+1][l][0]*p_a[i+1][0]+
-                            X_lam_Trans[i+1][l][1]*p_a[i+1][1]+
-                            X_lam_Trans[i+1][l][2]*p_a[i+1][2]+
-                            X_lam_Trans[i+1][l][3]*p_a[i+1][3]+
-                            X_lam_Trans[i+1][l][4]*p_a[i+1][4]+
-                            X_lam_Trans[i+1][l][5]*p_a[i+1][5];
-            }
+            data_t child_force[6];
+
+            f_mat_cal(
+                E[i + 1],
+                F[i + 1],
+                p_a[i + 1],
+                child_force
+            );
+
+            for (int k = 0; k < 6; k++)
+                p_A[i][k] = p[i][k] + child_force[k];
 
             // 计算U
             for(int m = 0;m<6;m++)

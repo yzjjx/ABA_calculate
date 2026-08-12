@@ -17,10 +17,13 @@ void back_pass(
     const data_t tau[DOF],
     const data_t c[DOF][6],
     const data_t X_lam[DOF][6][6],
+    const data_t E[DOF][3][3],
+    const data_t F[DOF][3][3],
     data_t I_A[DOF][6][6],
     data_t p_A[DOF][6],
     data_t U[DOF][6],
     data_t D[DOF],
+    data_t inv_D[DOF],
     data_t u[DOF],
     data_t I_a[DOF][6][6],
     data_t p_a[DOF][6]

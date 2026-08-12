@@ -12,205 +12,96 @@
 #include <T_R_out.h>
 #include <ABA_parms.h>
 #include <v_ori.h>
+#include <block_mat.h>
 
 // 因为在test_T_R_out已经定义，下面不再定义
 // typedef float data_t;
 // const int DOF = 3;
 
-void cal_v_J(
-    const data_t dq[DOF],
-    data_t v_J[6][DOF])
-{
-	data_t S[6] = {0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f};
-
-    for(int i = 0;i<DOF;i++)
-    {
-        v_J[0][i] = 0;
-        v_J[1][i] = 0;
-        v_J[2][i] = S[2]*dq[i];
-        v_J[3][i] = 0;
-        v_J[4][i] = 0;
-        v_J[5][i] = 0;
-    }
-}
-
 void v_fina(
     const data_t q[DOF],
     const data_t dq[DOF],
-    data_t X_lam[DOF][6][6],
+    data_t E[DOF][3][3],
+    data_t F[DOF][3][3],
+    data_t X_lam[DOF][6][6],  // 过渡阶段暂时保留
     data_t v[DOF][6]
 )
 {
-    // 定义X_lam的右下角矩阵
-    data_t X_lam_22[DOF][3][3];
-
-    data_t v_J_local[6][DOF];
-    cal_v_J(dq, v_J_local);
-
-    // 定义输出数组
-
-    data_t R_Trans[DOF][3][3];
-
-    cal_R_Trans(q, R_Trans);
-
-    data_t p_cross[DOF][3][3];
-    for(int i = 0;i < DOF;i++)
-    {
-        p_cross[i][0][0] = 0;
-        p_cross[i][0][1] = -P_const[i][2];
-        p_cross[i][0][2] = P_const[i][1];
-
-        p_cross[i][1][0] = P_const[i][2];
-        p_cross[i][1][1] = 0;
-        p_cross[i][1][2] = -P_const[i][0];
-
-        p_cross[i][2][0] = -P_const[i][1];
-        p_cross[i][2][1] = P_const[i][0];
-        p_cross[i][2][2] = 0;
-    }
+    // E = R^T
+    cal_R_Trans(q, E);
 
     for (int i = 0; i < DOF; i++)
     {
-        X_lam_22[i][0][0] = -(R_Trans[i][0][0]*p_cross[i][0][0]+
-                              R_Trans[i][0][1]*p_cross[i][1][0]+
-                              R_Trans[i][0][2]*p_cross[i][2][0]);
-        X_lam_22[i][0][1] = -(R_Trans[i][0][0]*p_cross[i][0][1]+
-                              R_Trans[i][0][1]*p_cross[i][1][1]+
-                              R_Trans[i][0][2]*p_cross[i][2][1]);
-        X_lam_22[i][0][2] = -(R_Trans[i][0][0]*p_cross[i][0][2]+
-                              R_Trans[i][0][1]*p_cross[i][1][2]+
-                              R_Trans[i][0][2]*p_cross[i][2][2]);
+        // 当前关节的紧凑空间变换左下角：
+        // F = -R^T * p_cross
+        const data_t px = P_const[i][0];
+        const data_t py = P_const[i][1];
+        const data_t pz = P_const[i][2];
 
-        X_lam_22[i][1][0] = -(R_Trans[i][1][0]*p_cross[i][0][0]+
-                              R_Trans[i][1][1]*p_cross[i][1][0]+
-                              R_Trans[i][1][2]*p_cross[i][2][0]);
-        X_lam_22[i][1][1] = -(R_Trans[i][1][0]*p_cross[i][0][1]+
-                              R_Trans[i][1][1]*p_cross[i][1][1]+
-                              R_Trans[i][1][2]*p_cross[i][2][1]);
-        X_lam_22[i][1][2] = -(R_Trans[i][1][0]*p_cross[i][0][2]+
-                              R_Trans[i][1][1]*p_cross[i][1][2]+
-                              R_Trans[i][1][2]*p_cross[i][2][2]);
-
-        X_lam_22[i][2][0] = -(R_Trans[i][2][0]*p_cross[i][0][0]+
-                              R_Trans[i][2][1]*p_cross[i][1][0]+
-                              R_Trans[i][2][2]*p_cross[i][2][0]);
-        X_lam_22[i][2][1] = -(R_Trans[i][2][0]*p_cross[i][0][1]+
-                              R_Trans[i][2][1]*p_cross[i][1][1]+
-                              R_Trans[i][2][2]*p_cross[i][2][1]);
-        X_lam_22[i][2][2] = -(R_Trans[i][2][0]*p_cross[i][0][2]+
-                              R_Trans[i][2][1]*p_cross[i][1][2]+
-                              R_Trans[i][2][2]*p_cross[i][2][2]);
-    }
-    
-    for (int i = 0; i < DOF; i++)
-    {
-        X_lam[i][0][0] = R_Trans[i][0][0];
-        X_lam[i][0][1] = R_Trans[i][0][1];
-        X_lam[i][0][2] = R_Trans[i][0][2];
-        X_lam[i][0][3] = 0;
-        X_lam[i][0][4] = 0;
-        X_lam[i][0][5] = 0;
-
-        X_lam[i][1][0] = R_Trans[i][1][0];
-        X_lam[i][1][1] = R_Trans[i][1][1];
-        X_lam[i][1][2] = R_Trans[i][1][2];
-        X_lam[i][1][3] = 0;
-        X_lam[i][1][4] = 0;
-        X_lam[i][1][5] = 0;
-
-        X_lam[i][2][0] = R_Trans[i][2][0];
-        X_lam[i][2][1] = R_Trans[i][2][1];
-        X_lam[i][2][2] = R_Trans[i][2][2];
-        X_lam[i][2][3] = 0;
-        X_lam[i][2][4] = 0;
-        X_lam[i][2][5] = 0;
-
-        X_lam[i][3][0] = X_lam_22[i][0][0];
-        X_lam[i][3][1] = X_lam_22[i][0][1];
-        X_lam[i][3][2] = X_lam_22[i][0][2];
-        X_lam[i][3][3] = R_Trans[i][0][0];
-        X_lam[i][3][4] = R_Trans[i][0][1];
-        X_lam[i][3][5] = R_Trans[i][0][2];
-
-        X_lam[i][4][0] = X_lam_22[i][1][0];
-        X_lam[i][4][1] = X_lam_22[i][1][1];
-        X_lam[i][4][2] = X_lam_22[i][1][2];
-        X_lam[i][4][3] = R_Trans[i][1][0];
-        X_lam[i][4][4] = R_Trans[i][1][1];
-        X_lam[i][4][5] = R_Trans[i][1][2];
-
-        X_lam[i][5][0] = X_lam_22[i][2][0];
-        X_lam[i][5][1] = X_lam_22[i][2][1];
-        X_lam[i][5][2] = X_lam_22[i][2][2];
-        X_lam[i][5][3] = R_Trans[i][2][0];
-        X_lam[i][5][4] = R_Trans[i][2][1];
-        X_lam[i][5][5] = R_Trans[i][2][2];
-    }
-      
-    // 速度前向递推计算
-    for(int i = 0; i < DOF; i++)
-    {
-        if (i == 0) 
+        // 直接计算F，不再构造p_cross
+        for (int r = 0; r < 3; r++)
         {
-            // 对于第一个连杆 (i=0)，父节点是基座(速度为0)
-            // 因此 v0 = X * v_base + v_J0 = v_J0
-            v[0][0] = 0.0f;
-            v[0][1] = 0.0f;
-            v[0][2] = dq[0];
-            v[0][3] = 0.0f;
-            v[0][4] = 0.0f;
-            v[0][5] = 0.0f;
-        } 
-        else 
+            const data_t e0 = E[i][r][0];
+            const data_t e1 = E[i][r][1];
+            const data_t e2 = E[i][r][2];
+
+            F[i][r][0] = e2 * py - e1 * pz;
+            F[i][r][1] = e0 * pz - e2 * px;
+            F[i][r][2] = e1 * px - e0 * py;
+        }
+
+        /*
+         * 目前back.cpp和pass3.cpp仍然需要完整X_lam，
+         * 所以暂时将E/F填回完整6×6矩阵。
+         *
+         * X = [E 0]
+         *     [F E]
+         */
+        for (int r = 0; r < 3; r++)
         {
-            // 对于后续连杆，使用前向递推: v_i = X_i * v_{i-1} + v_Ji
-            v[i][0] = X_lam[i][0][0]*v[i-1][0] +
-                      X_lam[i][0][1]*v[i-1][1] +
-                      X_lam[i][0][2]*v[i-1][2] +
-                      X_lam[i][0][3]*v[i-1][3] +
-                      X_lam[i][0][4]*v[i-1][4] +
-                      X_lam[i][0][5]*v[i-1][5] +
-                      v_J_local[0][i]; 
+            for (int col = 0; col < 3; col++)
+            {
+                X_lam[i][r][col] =
+                    E[i][r][col];
 
-            v[i][1] = X_lam[i][1][0]*v[i-1][0] +
-                      X_lam[i][1][1]*v[i-1][1] +
-                      X_lam[i][1][2]*v[i-1][2] +
-                      X_lam[i][1][3]*v[i-1][3] +
-                      X_lam[i][1][4]*v[i-1][4] +
-                      X_lam[i][1][5]*v[i-1][5] +
-                      v_J_local[1][i]; 
+                X_lam[i][r][col + 3] =
+                    0.0f;
 
-            v[i][2] = X_lam[i][2][0]*v[i-1][0] +
-                      X_lam[i][2][1]*v[i-1][1] +
-                      X_lam[i][2][2]*v[i-1][2] +
-                      X_lam[i][2][3]*v[i-1][3] +
-                      X_lam[i][2][4]*v[i-1][4] +
-                      X_lam[i][2][5]*v[i-1][5] +
-                      v_J_local[2][i]; 
+                X_lam[i][r + 3][col] =
+                    F[i][r][col];
 
-            v[i][3] = X_lam[i][3][0]*v[i-1][0] +
-                      X_lam[i][3][1]*v[i-1][1] +
-                      X_lam[i][3][2]*v[i-1][2] +
-                      X_lam[i][3][3]*v[i-1][3] +
-                      X_lam[i][3][4]*v[i-1][4] +
-                      X_lam[i][3][5]*v[i-1][5] +
-                      v_J_local[3][i]; 
+                X_lam[i][r + 3][col + 3] =
+                    E[i][r][col];
+            }
+        }
 
-            v[i][4] = X_lam[i][4][0]*v[i-1][0] +
-                      X_lam[i][4][1]*v[i-1][1] +
-                      X_lam[i][4][2]*v[i-1][2] +
-                      X_lam[i][4][3]*v[i-1][3] +
-                      X_lam[i][4][4]*v[i-1][4] +
-                      X_lam[i][4][5]*v[i-1][5] +
-                      v_J_local[4][i]; 
+        /*
+         * 速度前向递推：
+         *
+         * omega_new = E * omega_parent
+         * linear_new = F * omega_parent + E * linear_parent
+         */
 
-            v[i][5] = X_lam[i][5][0]*v[i-1][0] +
-                      X_lam[i][5][1]*v[i-1][1] +
-                      X_lam[i][5][2]*v[i-1][2] +
-                      X_lam[i][5][3]*v[i-1][3] +
-                      X_lam[i][5][4]*v[i-1][4] +
-                      X_lam[i][5][5]*v[i-1][5] +
-                      v_J_local[5][i]; 
+        if (i == 0)
+        {
+            v[i][0] = 0.0f;
+            v[i][1] = 0.0f;
+            v[i][2] = dq[i];
+            v[i][3] = 0.0f;
+            v[i][4] = 0.0f;
+            v[i][5] = 0.0f;
+        }
+        else
+        {
+            v_mat_cal(
+                E[i],
+                F[i],
+                v[i - 1],
+                v[i]
+            );
+
+            // 添加当前关节自身速度S*dq
+            v[i][2] += dq[i];
         }
     }
 }

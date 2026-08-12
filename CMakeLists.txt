@@ -14,6 +14,7 @@ add_executable(ABA
     src/back.cpp
     src/pass3.cpp
     src/ABA_parms.cpp
+    src/block_mat.cpp
 
     # #================================
     # #单独计算空间惯性矩阵

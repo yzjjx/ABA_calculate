@@ -12,11 +12,13 @@
 #include <v_ori.h>
 #include <cal_p.h>
 #include <pass3.h>
+#include <block_mat.h>
 
 void tip_pass3(
-    const data_t X_lam[DOF][6][6],
+    const data_t E[DOF][3][3],
+    const data_t F[DOF][3][3],
     const data_t c[DOF][6],
-    const data_t D[DOF],
+    const data_t inv_D[DOF],
     const data_t u[DOF],
     const data_t U[DOF][6],
     data_t ddq[DOF]
@@ -28,16 +30,10 @@ void tip_pass3(
 
     for(int i = 0;i<DOF;i++)
     {
-        for(int j = 0;j<6;j++)
-        {
-            a_s[j] =  X_lam[i][j][0]*a_parent[0]+
-                      X_lam[i][j][1]*a_parent[1]+
-                      X_lam[i][j][2]*a_parent[2]+
-                      X_lam[i][j][3]*a_parent[3]+
-                      X_lam[i][j][4]*a_parent[4]+
-                      X_lam[i][j][5]*a_parent[5]+
-                      c[i][j];
-        }
+        v_mat_cal(E[i], F[i], a_parent, a_s);
+
+        for (int k = 0; k < 6; k++)
+            a_s[k] += c[i][k];
 
         const data_t Ua =
             U[i][0] * a_s[0] +
@@ -47,9 +43,7 @@ void tip_pass3(
             U[i][4] * a_s[4] +
             U[i][5] * a_s[5];
 
-        data_t inv_D = 1.0f / D[i];
-
-        ddq[i] = (u[i]-Ua)*inv_D;
+        ddq[i] = (u[i]-Ua)*inv_D[i];
 
         a_s[2] += ddq[i];
 
