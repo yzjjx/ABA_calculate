@@ -191,3 +191,37 @@ child_I：36
 child_p：6  
 
 合计：126个float  
+
+去除一定为0的计算结果，例如在back.cpp中：
+```c++
+const data_t Iac =
+    Ia_cur[r][0] * c[i][0] +
+    Ia_cur[r][1] * c[i][1] +
+    Ia_cur[r][2] * c[i][2] +
+    Ia_cur[r][3] * c[i][3] +
+    Ia_cur[r][4] * c[i][4] +
+    Ia_cur[r][5] * c[i][5];
+```
+其中从c.cpp中可以得到：
+```c++
+c[i][0] =  v[i][1] * wi;
+c[i][1] = -v[i][0] * wi;
+c[i][2] =  0.0f;
+
+c[i][3] =  v[i][4] * wi;
+c[i][4] = -v[i][3] * wi;
+c[i][5] =  0.0f;
+```
+因此可以更改为：
+```c++
+const data_t s0 =
+    Ia_cur[r][0] * c[i][0] +
+    Ia_cur[r][1] * c[i][1];
+
+const data_t s1 =
+    Ia_cur[r][3] * c[i][3] +
+    Ia_cur[r][4] * c[i][4];
+
+const data_t Iac = s0 + s1;
+```
+单次乘法从6降低为4，总计36次计算降低为24次

@@ -214,13 +214,15 @@ void back_pass(
 
         for (int r = 0; r < 6; r++)
         {
-            const data_t Iac =
+            const data_t s0 =
                 Ia_cur[r][0] * c[i][0] +
-                Ia_cur[r][1] * c[i][1] +
-                Ia_cur[r][2] * c[i][2] +
+                Ia_cur[r][1] * c[i][1];
+
+            const data_t s1 =
                 Ia_cur[r][3] * c[i][3] +
-                Ia_cur[r][4] * c[i][4] +
-                Ia_cur[r][5] * c[i][5];
+                Ia_cur[r][4] * c[i][4];
+
+            const data_t Iac = s0 + s1;
 
             pa_cur[r] =
                 pA_cur[r] +

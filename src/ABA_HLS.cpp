@@ -26,16 +26,11 @@ void ABA(
     data_t h[DOF][6];
     data_t p[DOF][6];
 
-    data_t I_A[DOF][6][6];
-    data_t p_A[DOF][6];
     data_t U[DOF][6];
-    data_t D[DOF];
     data_t inv_D[DOF];
     data_t E[DOF][3][3];
     data_t F[DOF][3][3];
     data_t u[DOF];
-    data_t I_a[DOF][6][6];
-    data_t p_a[DOF][6];
 
     // 调用函数
     // 计算v
