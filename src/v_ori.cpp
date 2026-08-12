@@ -23,7 +23,6 @@ void v_fina(
     const data_t dq[DOF],
     data_t E[DOF][3][3],
     data_t F[DOF][3][3],
-    data_t X_lam[DOF][6][6],  // 过渡阶段暂时保留
     data_t v[DOF][6]
 )
 {
@@ -48,31 +47,6 @@ void v_fina(
             F[i][r][0] = e2 * py - e1 * pz;
             F[i][r][1] = e0 * pz - e2 * px;
             F[i][r][2] = e1 * px - e0 * py;
-        }
-
-        /*
-         * 目前back.cpp和pass3.cpp仍然需要完整X_lam，
-         * 所以暂时将E/F填回完整6×6矩阵。
-         *
-         * X = [E 0]
-         *     [F E]
-         */
-        for (int r = 0; r < 3; r++)
-        {
-            for (int col = 0; col < 3; col++)
-            {
-                X_lam[i][r][col] =
-                    E[i][r][col];
-
-                X_lam[i][r][col + 3] =
-                    0.0f;
-
-                X_lam[i][r + 3][col] =
-                    F[i][r][col];
-
-                X_lam[i][r + 3][col + 3] =
-                    E[i][r][col];
-            }
         }
 
         /*

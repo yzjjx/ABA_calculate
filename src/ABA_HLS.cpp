@@ -19,7 +19,6 @@ void ABA(
 )
 {
     // 定义输出数组
-    data_t X_lam[DOF][6][6];
     data_t v[DOF][6];
 
     data_t c[DOF][6];
@@ -40,7 +39,7 @@ void ABA(
 
     // 调用函数
     // 计算v
-    v_fina(q, dq, E, F, X_lam, v);
+    v_fina(q, dq, E, F, v);
 
     // 计算c
     c_fina(v,dq,c);
@@ -51,7 +50,7 @@ void ABA(
     p_fina(v,h,p);
 
     // 逆推
-    back_pass(I_spa,p,tau,c,X_lam,E,F,I_A,p_A,U,D,inv_D,u,I_a,p_a);
+    back_pass(I_spa,p,tau,c,E,F,I_A,p_A,U,D,inv_D,u,I_a,p_a);
 
     // 正推
     tip_pass3(E, F, c, inv_D, u, U, ddq);

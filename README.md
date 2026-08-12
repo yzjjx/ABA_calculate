@@ -151,4 +151,24 @@ F*\omega+E*v
 \end{bmatrix}
 $$
 
-删除所有不用或者重复使用的函数、变量
+删除所有不用或者重复使用的函数、变量  
+一次通用的6*6矩阵乘法包含216次乘法，因此所有矩阵简化为块矩阵计算  
+目前代码中最大头的计算为
+```c++
+data_t out_1[DOF][6][6];
+data_t out_fin[DOF][6][6];
+mat_6x6(X_lam_Trans[i+1],I_a[i+1],out_1[i+1]);
+mat_6x6(out_1[i+1],X_lam[i+1],out_fin[i+1]);
+```
+也就是：
+$$
+out_{fina}=X^T*I_a*X
+$$
+因为矩阵X含有零矩阵的部分，因此可以分为两部分：
+$$
+\left\{\begin{matrix}I_x=I_a*X
+ \\
+out_{fina}=X^T*I_x
+\end{matrix}\right.
+$$
+空间惯量矩阵Ia为对称矩阵，因此结果也是对称的
