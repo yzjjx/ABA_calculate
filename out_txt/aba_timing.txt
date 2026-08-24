@@ -1,0 +1,4 @@
+sample_count 1000
+total_us 876.800000
+average_us 0.876800
+calculations_per_second 1140510.948905
