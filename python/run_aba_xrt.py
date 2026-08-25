@@ -6,7 +6,13 @@ the FPGA is programmed with a raw .bit file and the host accesses the shared
 BRAM through XDMA memory-mapped H2C/C2H channels.
 
 Input text format (one state per row):
-    q[0:6], dq[0:6], tau[0:6] -- 18 whitespace-separated float values
+    q[0:6], dq[0:6], tau[0:6] -- 18 whitespace-separated decimal values
+
+BRAM word formats (all signed 32-bit, little-endian):
+    q   : ap_fixed<32, 4>  / Q4.28
+    dq  : ap_fixed<32, 4>  / Q4.28
+    tau : ap_fixed<32, 8>  / Q8.24
+    ddq : ap_fixed<32,16>  / Q16.16
 
 Examples
 --------
@@ -54,6 +60,13 @@ INPUT_VALUES_PER_SAMPLE = 18
 OUTPUT_VALUES_PER_SAMPLE = 6
 INPUT_BYTES_PER_SAMPLE = INPUT_VALUES_PER_SAMPLE * 4
 OUTPUT_BYTES_PER_SAMPLE = OUTPUT_VALUES_PER_SAMPLE * 4
+
+Q_FRACTION_BITS = 28
+DQ_FRACTION_BITS = 28
+TAU_FRACTION_BITS = 24
+DDQ_FRACTION_BITS = 16
+INT32_MIN = -(1 << 31)
+INT32_MAX = (1 << 31) - 1
 
 COMMAND_IDLE = 0
 COMMAND_START = 1
@@ -260,7 +273,7 @@ def auto_int(value: str) -> int:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run 1..1000 floating-point ABA states through XDMA and BRAM."
+        description="Run 1..1000 fixed-point ABA states through XDMA and BRAM."
     )
     parser.add_argument(
         "--input",
@@ -344,6 +357,22 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
+def quantize_fixed(
+    values: np.ndarray,
+    fraction_bits: int,
+    name: str,
+) -> np.ndarray:
+    """Match ap_fixed AP_RND_CONV/AP_SAT conversion into a 32-bit word."""
+    scaled = np.rint(values * float(1 << fraction_bits))
+    clipped = np.clip(scaled, INT32_MIN, INT32_MAX)
+    saturation_count = int(np.count_nonzero(scaled != clipped))
+    if saturation_count:
+        raise RuntimeError(
+            f"{name}: {saturation_count} values exceed its 32-bit fixed range"
+        )
+    return np.ascontiguousarray(clipped, dtype="<i4")
+
+
 def load_inputs(path: Path, count: int) -> np.ndarray:
     try:
         values = np.loadtxt(path, dtype=np.float64)
@@ -364,8 +393,19 @@ def load_inputs(path: Path, count: int) -> np.ndarray:
     if not np.isfinite(selected).all():
         raise RuntimeError("selected input rows contain NaN or infinity")
 
-    # The HLS data_t is float, so the BRAM contains IEEE-754 binary32 words.
-    return np.ascontiguousarray(selected, dtype="<f4")
+    # Preserve the controller's per-state BRAM layout:
+    # q[6], dq[6], tau[6]. Only the representation of each 32-bit word changes.
+    packed = np.empty((count, INPUT_VALUES_PER_SAMPLE), dtype="<i4")
+    packed[:, 0:DOF] = quantize_fixed(
+        selected[:, 0:DOF], Q_FRACTION_BITS, "q"
+    )
+    packed[:, DOF : 2 * DOF] = quantize_fixed(
+        selected[:, DOF : 2 * DOF], DQ_FRACTION_BITS, "dq"
+    )
+    packed[:, 2 * DOF : 3 * DOF] = quantize_fixed(
+        selected[:, 2 * DOF : 3 * DOF], TAU_FRACTION_BITS, "tau"
+    )
+    return np.ascontiguousarray(packed)
 
 
 def open_dma(args: argparse.Namespace) -> DmaAccess:
@@ -507,9 +547,21 @@ def main() -> int:
     print(f"Input bytes:    {len(input_bytes)}")
     print(f"Input AXI addr: 0x{address(args.base_address, INPUT_OFFSET):08X}")
     print(f"Output AXI addr:0x{address(args.base_address, OUTPUT_OFFSET):08X}")
-    print("Data format:    IEEE-754 float32, little-endian")
+    print("Data format:    signed fixed-point int32, little-endian")
+    print("  q/dq:         Q4.28")
+    print("  tau:          Q8.24")
+    print("  ddq:          Q16.16")
 
     if args.dry_run:
+        print(
+            "Packed raw ranges: "
+            f"q=[{input_values[:, 0:DOF].min()}, "
+            f"{input_values[:, 0:DOF].max()}], "
+            f"dq=[{input_values[:, DOF:2 * DOF].min()}, "
+            f"{input_values[:, DOF:2 * DOF].max()}], "
+            f"tau=[{input_values[:, 2 * DOF:3 * DOF].min()}, "
+            f"{input_values[:, 2 * DOF:3 * DOF].max()}]"
+        )
         print("Dry run completed; no XDMA device was opened.")
         return 0
 
@@ -543,12 +595,17 @@ def main() -> int:
     finally:
         dma.close()
 
-    outputs = np.frombuffer(output_bytes, dtype="<f4").copy().reshape(
+    output_raw = np.frombuffer(output_bytes, dtype="<i4").copy().reshape(
         args.count, OUTPUT_VALUES_PER_SAMPLE
     )
-    if not np.isfinite(outputs).all():
-        bad_count = int(np.count_nonzero(~np.isfinite(outputs)))
-        raise RuntimeError(f"FPGA output contains {bad_count} NaN/Inf values")
+    saturated_count = int(
+        np.count_nonzero((output_raw == INT32_MIN) | (output_raw == INT32_MAX))
+    )
+    if saturated_count:
+        raise RuntimeError(
+            f"FPGA output contains {saturated_count} saturated Q16.16 values"
+        )
+    outputs = output_raw.astype(np.float64) / float(1 << DDQ_FRACTION_BITS)
 
     write_outputs(args.output, outputs)
 
