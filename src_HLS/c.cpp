@@ -8,19 +8,15 @@
  * @version t0.1
  */
 
-#include <cmath>
-#include <v_ori.h>
-#include <c.h>
+#include "ABA_fixed.h"
 
 // 因为在test_T_R_out已经定义，下面不再定义
-// typedef float data_t;
-// const int DOF = 3;
 
 // 定义静态数组空间向量叉乘方式
 void space_cross(
-    const data_t in_1[6],
-    const data_t in_2[6],
-    data_t out[6]
+    const kinematic_t in_1[6],
+    const kinematic_t in_2[6],
+    kinematic_t out[6]
 )
 {
 #pragma HLS INLINE
@@ -43,9 +39,9 @@ void space_cross(
 
 // 因为是转动副，所以S圈i为0,因此c的计算只有后面的叉乘，为6*1矩阵叉乘
 void c_fina(
-    const data_t v[DOF][6],
-    const data_t dq[DOF],
-    data_t c[DOF][6])
+    const kinematic_t v[DOF][6],
+    const joint_vel_t dq[DOF],
+    kinematic_t c[DOF][6])
 {
 #pragma HLS INLINE
 #pragma HLS ARRAY_PARTITION variable=v complete dim=0
@@ -55,7 +51,7 @@ void c_fina(
     for (int i = 0; i < DOF; i++)
     {
 #pragma HLS UNROLL
-        const data_t wi = dq[i];
+        const kinematic_t wi = dq[i];
 
         c[i][0] =  v[i][1] * wi;
         c[i][1] = -v[i][0] * wi;

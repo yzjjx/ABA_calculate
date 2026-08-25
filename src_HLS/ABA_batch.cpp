@@ -1,14 +1,15 @@
 #include "ABA_batch.h"
 
 void ABA_batch(
-    const data_t q[ABA_BATCH_SIZE][DOF],
-    const data_t dq[ABA_BATCH_SIZE][DOF],
-    const data_t tau[ABA_BATCH_SIZE][DOF],
+    const joint_pos_t q[ABA_BATCH_SIZE][DOF],
+    const joint_vel_t dq[ABA_BATCH_SIZE][DOF],
+    const joint_tau_t tau[ABA_BATCH_SIZE][DOF],
     data_t ddq[ABA_BATCH_SIZE][DOF]
 )
 {
     // Four independent AXI masters allow q, dq, tau and ddq traffic to overlap.
-    // depth is expressed in scalar float elements: 1000 states * 6 joints.
+    // depth is expressed in scalar 32-bit fixed-point elements:
+    // 1000 states * 6 joints.
 #pragma HLS INTERFACE m_axi port=q offset=slave bundle=gmem_q depth=6000 \
     max_read_burst_length=64 num_read_outstanding=16
 #pragma HLS INTERFACE m_axi port=dq offset=slave bundle=gmem_dq depth=6000 \
@@ -31,9 +32,9 @@ batch_loop:
         // encourage another excessive replication attempt around the core.
 #pragma HLS PIPELINE II=12 rewind
 
-        data_t q_local[DOF];
-        data_t dq_local[DOF];
-        data_t tau_local[DOF];
+        joint_pos_t q_local[DOF];
+        joint_vel_t dq_local[DOF];
+        joint_tau_t tau_local[DOF];
         data_t ddq_local[DOF];
 
 #pragma HLS ARRAY_PARTITION variable=q_local complete dim=1

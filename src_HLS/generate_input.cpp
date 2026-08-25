@@ -1,4 +1,4 @@
-#include <ABA_HLS.h>
+#include "ABA_fixed.h"
 
 #include <filesystem>
 #include <fstream>
@@ -45,15 +45,17 @@ int main(int argc, char* argv[])
 
     // 固定随机种子保证每次生成相同的测试数据，便于对比计算结果和速度。
     std::mt19937 generator(20260824U);
-    std::uniform_real_distribution<data_t> q_distribution(-3.14159265f, 3.14159265f);
-    std::uniform_real_distribution<data_t> dq_distribution(-2.0f, 2.0f);
-    std::uniform_real_distribution<data_t> tau_distribution(-10.0f, 10.0f);
+    // Random generation is host-only. Generate as double, then quantize once
+    // through data_t so the file exactly represents accelerator inputs.
+    std::uniform_real_distribution<double> q_distribution(-3.14159265, 3.14159265);
+    std::uniform_real_distribution<double> dq_distribution(-2.0, 2.0);
+    std::uniform_real_distribution<double> tau_distribution(-10.0, 10.0);
 
     output << std::setprecision(9);
     for (std::size_t sample = 0; sample < kSampleCount; ++sample)
     {
         bool first_value = true;
-        const auto write_value = [&](data_t value) {
+        const auto write_value = [&](const auto& value) {
             if (!first_value)
             {
                 output << ' ';
@@ -64,15 +66,15 @@ int main(int argc, char* argv[])
 
         for (int joint = 0; joint < DOF; ++joint)
         {
-            write_value(q_distribution(generator));
+            write_value(joint_pos_t(q_distribution(generator)));
         }
         for (int joint = 0; joint < DOF; ++joint)
         {
-            write_value(dq_distribution(generator));
+            write_value(joint_vel_t(dq_distribution(generator)));
         }
         for (int joint = 0; joint < DOF; ++joint)
         {
-            write_value(tau_distribution(generator));
+            write_value(joint_tau_t(tau_distribution(generator)));
         }
         output << '\n';
     }

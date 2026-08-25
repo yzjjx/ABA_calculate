@@ -8,22 +8,16 @@
  * @version t0.1
  */
 
-#include <cmath>
-#include <T_R_out.h>
-#include <ABA_parms.h>
-#include <v_ori.h>
-#include <block_mat.h>
+#include "ABA_fixed.h"
 
 // 因为在test_T_R_out已经定义，下面不再定义
-// typedef float data_t;
-// const int DOF = 3;
 
 void v_fina(
-    const data_t q[DOF],
-    const data_t dq[DOF],
-    data_t E[DOF][3][3],
-    data_t F[DOF][3][3],
-    data_t v[DOF][6]
+    const joint_pos_t q[DOF],
+    const joint_vel_t dq[DOF],
+    transform_t E[DOF][3][3],
+    transform_t F[DOF][3][3],
+    kinematic_t v[DOF][6]
 )
 {
 #pragma HLS INLINE
@@ -41,17 +35,17 @@ void v_fina(
 #pragma HLS UNROLL
         // 当前关节的紧凑空间变换左下角：
         // F = -R^T * p_cross
-        const data_t px = P_const[i][0];
-        const data_t py = P_const[i][1];
-        const data_t pz = P_const[i][2];
+        const transform_t px = P_const[i][0];
+        const transform_t py = P_const[i][1];
+        const transform_t pz = P_const[i][2];
 
         // 直接计算F，不再构造p_cross
         for (int r = 0; r < 3; r++)
         {
 #pragma HLS UNROLL
-            const data_t e0 = E[i][r][0];
-            const data_t e1 = E[i][r][1];
-            const data_t e2 = E[i][r][2];
+            const transform_t e0 = E[i][r][0];
+            const transform_t e1 = E[i][r][1];
+            const transform_t e2 = E[i][r][2];
 
             F[i][r][0] = e2 * py - e1 * pz;
             F[i][r][1] = e0 * pz - e2 * px;
@@ -76,7 +70,7 @@ void v_fina(
         }
         else
         {
-            v_mat_cal(
+            v_mat_cal_kinematic(
                 E[i],
                 F[i],
                 v[i - 1],

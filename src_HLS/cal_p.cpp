@@ -1,20 +1,15 @@
-#include <cmath>
-#include <c.h>
-#include <v_ori.h>
-#include <cal_p.h>
+#include "ABA_fixed.h"
 
 // 因为在test_T_R_out已经定义，下面不再定义
-// typedef float data_t;
-// const int DOF = 3;
 
 // 外力为0,后面项为0，仅计算前面的空间叉乘
 
 // 空间动量(h)计算
 // 计算空间惯量矩阵
 void h_fina(
-    const data_t I_spa[DOF][6][6],
-    const data_t v[DOF][6],
-    data_t h[DOF][6]
+    const inertia_t I_spa[DOF][6][6],
+    const kinematic_t v[DOF][6],
+    force_t h[DOF][6]
 )
 {
 #pragma HLS INLINE
@@ -74,9 +69,9 @@ void h_fina(
 
 // 空间力叉乘算法
 void f_space_cross(
-    const data_t in_1[6],
-    const data_t in_2[6],
-    data_t out[6]
+    const kinematic_t in_1[6],
+    const force_t in_2[6],
+    force_t out[6]
 )
 {
 #pragma HLS INLINE
@@ -98,9 +93,9 @@ void f_space_cross(
 
 // 空间叉乘计算
 void p_fina(
-    const data_t v[DOF][6],
-    const data_t h[DOF][6],
-    data_t p[DOF][6]
+    const kinematic_t v[DOF][6],
+    const force_t h[DOF][6],
+    force_t p[DOF][6]
 )
 {
 #pragma HLS INLINE

@@ -8,13 +8,12 @@
  * @version t0.1
  */
 
-#include <ABA_parms.h>
-#include <ABA_HLS.h>
+#include "ABA_fixed.h"
 
 void ABA(
-    const data_t q[DOF],
-    const data_t dq[DOF],
-    const data_t tau[DOF],
+    const joint_pos_t q[DOF],
+    const joint_vel_t dq[DOF],
+    const joint_tau_t tau[DOF],
     data_t ddq[DOF]
 )
 {
@@ -24,30 +23,26 @@ void ABA(
 #pragma HLS ARRAY_PARTITION variable=tau complete dim=1
 #pragma HLS ARRAY_PARTITION variable=ddq complete dim=1
 
-    // Resource-balanced throughput target.  II=12 still overlaps many robot
-    // states, but lets the scheduler reuse floating-point operators instead of
-    // constructing a complete II=1 copy of the arithmetic graph.
+    // Resource-balanced throughput target. II=12 allows fixed-point operators
+    // to be shared instead of constructing a complete II=1 arithmetic graph.
 #pragma HLS PIPELINE II=12
 
-    // Prefer a larger achieved II over exceeding the target FPGA resources.
-#pragma HLS ALLOCATION operation instances=fmul limit=256
-#pragma HLS ALLOCATION operation instances=fadd limit=256
-#pragma HLS ALLOCATION operation instances=fsub limit=128
-#pragma HLS ALLOCATION operation instances=fdiv limit=1
+    // The former fmul/fadd/fdiv limits no longer apply: there are no
+    // floating-point operations in this datapath.
 
     // 定义输出数组
-    data_t v[DOF][6];
+    kinematic_t v[DOF][6];
 
-    data_t c[DOF][6];
+    kinematic_t c[DOF][6];
 
-    data_t h[DOF][6];
-    data_t p[DOF][6];
+    force_t h[DOF][6];
+    force_t p[DOF][6];
 
-    data_t U[DOF][6];
-    data_t inv_D[DOF];
-    data_t E[DOF][3][3];
-    data_t F[DOF][3][3];
-    data_t u[DOF];
+    inertia_t U[DOF][6];
+    inverse_t inv_D[DOF];
+    transform_t E[DOF][3][3];
+    transform_t F[DOF][3][3];
+    force_t u[DOF];
 
 #pragma HLS ARRAY_PARTITION variable=v complete dim=0
 #pragma HLS ARRAY_PARTITION variable=c complete dim=0

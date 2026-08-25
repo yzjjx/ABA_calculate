@@ -1,12 +1,12 @@
 //计算空间惯量矩阵，但是空间惯量矩阵为常数，因此这个最终不参加HLS综合
-#include "ABA_parms.h"
+#include "ABA_fixed.h"
 
 // 计算空间惯量矩阵
 void I_space(
     const data_t mass[DOF],
     const data_t c_of_mass[DOF][3],
     const data_t I[DOF][9],//行展开矩阵
-    data_t I_spa[DOF][6][6]
+    inertia_t I_spa[DOF][6][6]
 )
 {
     // 计算质心叉乘矩阵

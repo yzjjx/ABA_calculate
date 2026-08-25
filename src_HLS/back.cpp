@@ -8,15 +8,9 @@
  * @version t0.1
  */
 
-#include <cmath>
-#include <v_ori.h>
-#include <cal_p.h>
-#include <block_mat.h>
-#include <back.h>
+#include "ABA_fixed.h"
 
 // 因为在test_T_R_out已经定义，下面不再定义
-// typedef float data_t;
-// const int DOF = 3;
 
 // // 6*6矩阵乘法静态数组计算
 // void mat_6x6(
@@ -107,15 +101,15 @@
 
 //输出inv_D[i]，用于后向递推计算
 void back_pass(
-    const data_t I_spa[DOF][6][6],
-    const data_t p[DOF][6],
-    const data_t tau[DOF],
-    const data_t c[DOF][6],
-    const data_t E[DOF][3][3],
-    const data_t F[DOF][3][3],
-    data_t U[DOF][6],
-    data_t inv_D[DOF],
-    data_t u[DOF]
+    const inertia_t I_spa[DOF][6][6],
+    const force_t p[DOF][6],
+    const joint_tau_t tau[DOF],
+    const kinematic_t c[DOF][6],
+    const transform_t E[DOF][3][3],
+    const transform_t F[DOF][3][3],
+    inertia_t U[DOF][6],
+    inverse_t inv_D[DOF],
+    force_t u[DOF]
 )
 {
 #pragma HLS INLINE
@@ -134,14 +128,14 @@ void back_pass(
 #pragma HLS ALLOCATION function instances=transform_inertia_ef limit=1
 
     // 当前关节数据
-    data_t IA_cur[6][6];
-    data_t Ia_cur[6][6];
-    data_t pA_cur[6];
-    data_t pa_cur[6];
+    inertia_t IA_cur[6][6];
+    inertia_t Ia_cur[6][6];
+    force_t pA_cur[6];
+    force_t pa_cur[6];
 
     // 子关节已经传播到当前关节坐标系的贡献
-    data_t child_I[6][6];
-    data_t child_p[6];
+    inertia_t child_I[6][6];
+    force_t child_p[6];
 
 #pragma HLS ARRAY_PARTITION variable=IA_cur complete dim=0
 #pragma HLS ARRAY_PARTITION variable=Ia_cur complete dim=0
@@ -210,9 +204,9 @@ void back_pass(
         /*
          * 3. 当前关节标量
          */
-        const data_t D_cur = U[i][2];
+        const inertia_t D_cur = U[i][2];
 
-        inv_D[i] = 1.0f / D_cur;
+        inv_D[i] = inverse_t(1) / D_cur;
         u[i] = tau[i] - pA_cur[2];
 
         /*
@@ -223,14 +217,14 @@ void back_pass(
         for (int r = 0; r < 6; r++)
         {
 #pragma HLS UNROLL
+            const inertia_t U_scaled = U[i][r] * inv_D[i];
+
             for (int col = 0; col < 6; col++)
             {
 #pragma HLS UNROLL
                 Ia_cur[r][col] =
                     IA_cur[r][col] -
-                    U[i][r] *
-                    U[i][col] *
-                    inv_D[i];
+                    U_scaled * U[i][col];
             }
         }
 
@@ -245,15 +239,15 @@ void back_pass(
         for (int r = 0; r < 6; r++)
         {
 #pragma HLS UNROLL
-            const data_t s0 =
+            const force_t s0 =
                 Ia_cur[r][0] * c[i][0] +
                 Ia_cur[r][1] * c[i][1];
 
-            const data_t s1 =
+            const force_t s1 =
                 Ia_cur[r][3] * c[i][3] +
                 Ia_cur[r][4] * c[i][4];
 
-            const data_t Iac = s0 + s1;
+            const force_t Iac = s0 + s1;
 
             pa_cur[r] =
                 pA_cur[r] +

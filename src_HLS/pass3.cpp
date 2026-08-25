@@ -8,19 +8,15 @@
  * @version t0.1
  */
 
-#include <cmath>
-#include <v_ori.h>
-#include <cal_p.h>
-#include <pass3.h>
-#include <block_mat.h>
+#include "ABA_fixed.h"
 
 void tip_pass3(
-    const data_t E[DOF][3][3],
-    const data_t F[DOF][3][3],
-    const data_t c[DOF][6],
-    const data_t inv_D[DOF],
-    const data_t u[DOF],
-    const data_t U[DOF][6],
+    const transform_t E[DOF][3][3],
+    const transform_t F[DOF][3][3],
+    const kinematic_t c[DOF][6],
+    const inverse_t inv_D[DOF],
+    const force_t u[DOF],
+    const inertia_t U[DOF][6],
     data_t ddq[DOF]
 )
 {
@@ -43,7 +39,7 @@ void tip_pass3(
     for(int i = 0;i<DOF;i++)
     {
 #pragma HLS UNROLL
-        v_mat_cal(E[i], F[i], a_parent, a_s);
+        v_mat_cal_acceleration(E[i], F[i], a_parent, a_s);
 
         for (int k = 0; k < 6; k++)
         {
@@ -51,7 +47,7 @@ void tip_pass3(
             a_s[k] += c[i][k];
         }
 
-        const data_t Ua =
+        const force_t Ua =
             U[i][0] * a_s[0] +
             U[i][1] * a_s[1] +
             U[i][2] * a_s[2] +

@@ -1,11 +1,11 @@
 // 该代码用来生成空间惯量矩阵
 #include <iostream>
 #include <iomanip>
-#include <I_space.h>
+#include "ABA_fixed.h"
 
 int main()
 {
-    data_t I_spa[DOF][6][6];
+    inertia_t I_spa[DOF][6][6];
 
     I_space(
         mass,
