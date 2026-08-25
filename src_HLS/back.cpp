@@ -1,0 +1,287 @@
+/**
+ * @file test_back.cpp
+ * @brief 用于实现书本pass2后向递推过程
+ *
+ *
+ * @author YZJ
+ * @date 2026-05-20
+ * @version t0.1
+ */
+
+#include <cmath>
+#include <v_ori.h>
+#include <cal_p.h>
+#include <block_mat.h>
+#include <back.h>
+
+// 因为在test_T_R_out已经定义，下面不再定义
+// typedef float data_t;
+// const int DOF = 3;
+
+// // 6*6矩阵乘法静态数组计算
+// void mat_6x6(
+//     const data_t in_1[6][6],
+//     const data_t in_2[6][6],
+//     data_t out[6][6]
+// )
+// {
+//     out[0][0] = in_1[0][0]*in_2[0][0] + in_1[0][1]*in_2[1][0] + in_1[0][2]*in_2[2][0] +
+//                 in_1[0][3]*in_2[3][0] + in_1[0][4]*in_2[4][0] + in_1[0][5]*in_2[5][0];
+//     out[0][1] = in_1[0][0]*in_2[0][1] + in_1[0][1]*in_2[1][1] + in_1[0][2]*in_2[2][1] +
+//                 in_1[0][3]*in_2[3][1] + in_1[0][4]*in_2[4][1] + in_1[0][5]*in_2[5][1];
+//     out[0][2] = in_1[0][0]*in_2[0][2] + in_1[0][1]*in_2[1][2] + in_1[0][2]*in_2[2][2] +
+//                 in_1[0][3]*in_2[3][2] + in_1[0][4]*in_2[4][2] + in_1[0][5]*in_2[5][2];
+//     out[0][3] = in_1[0][0]*in_2[0][3] + in_1[0][1]*in_2[1][3] + in_1[0][2]*in_2[2][3] +
+//                 in_1[0][3]*in_2[3][3] + in_1[0][4]*in_2[4][3] + in_1[0][5]*in_2[5][3];
+//     out[0][4] = in_1[0][0]*in_2[0][4] + in_1[0][1]*in_2[1][4] + in_1[0][2]*in_2[2][4] +
+//                 in_1[0][3]*in_2[3][4] + in_1[0][4]*in_2[4][4] + in_1[0][5]*in_2[5][4];
+//     out[0][5] = in_1[0][0]*in_2[0][5] + in_1[0][1]*in_2[1][5] + in_1[0][2]*in_2[2][5] +
+//                 in_1[0][3]*in_2[3][5] + in_1[0][4]*in_2[4][5] + in_1[0][5]*in_2[5][5];
+
+//     out[1][0] = in_1[1][0]*in_2[0][0] + in_1[1][1]*in_2[1][0] + in_1[1][2]*in_2[2][0] +
+//                 in_1[1][3]*in_2[3][0] + in_1[1][4]*in_2[4][0] + in_1[1][5]*in_2[5][0];
+//     out[1][1] = in_1[1][0]*in_2[0][1] + in_1[1][1]*in_2[1][1] + in_1[1][2]*in_2[2][1] +
+//                 in_1[1][3]*in_2[3][1] + in_1[1][4]*in_2[4][1] + in_1[1][5]*in_2[5][1];
+//     out[1][2] = in_1[1][0]*in_2[0][2] + in_1[1][1]*in_2[1][2] + in_1[1][2]*in_2[2][2] +
+//                 in_1[1][3]*in_2[3][2] + in_1[1][4]*in_2[4][2] + in_1[1][5]*in_2[5][2];
+//     out[1][3] = in_1[1][0]*in_2[0][3] + in_1[1][1]*in_2[1][3] + in_1[1][2]*in_2[2][3] +
+//                 in_1[1][3]*in_2[3][3] + in_1[1][4]*in_2[4][3] + in_1[1][5]*in_2[5][3];
+//     out[1][4] = in_1[1][0]*in_2[0][4] + in_1[1][1]*in_2[1][4] + in_1[1][2]*in_2[2][4] +
+//                 in_1[1][3]*in_2[3][4] + in_1[1][4]*in_2[4][4] + in_1[1][5]*in_2[5][4];
+//     out[1][5] = in_1[1][0]*in_2[0][5] + in_1[1][1]*in_2[1][5] + in_1[1][2]*in_2[2][5] +
+//                 in_1[1][3]*in_2[3][5] + in_1[1][4]*in_2[4][5] + in_1[1][5]*in_2[5][5];
+
+//     out[2][0] = in_1[2][0]*in_2[0][0] + in_1[2][1]*in_2[1][0] + in_1[2][2]*in_2[2][0] +
+//                 in_1[2][3]*in_2[3][0] + in_1[2][4]*in_2[4][0] + in_1[2][5]*in_2[5][0];
+//     out[2][1] = in_1[2][0]*in_2[0][1] + in_1[2][1]*in_2[1][1] + in_1[2][2]*in_2[2][1] +
+//                 in_1[2][3]*in_2[3][1] + in_1[2][4]*in_2[4][1] + in_1[2][5]*in_2[5][1];
+//     out[2][2] = in_1[2][0]*in_2[0][2] + in_1[2][1]*in_2[1][2] + in_1[2][2]*in_2[2][2] +
+//                 in_1[2][3]*in_2[3][2] + in_1[2][4]*in_2[4][2] + in_1[2][5]*in_2[5][2];
+//     out[2][3] = in_1[2][0]*in_2[0][3] + in_1[2][1]*in_2[1][3] + in_1[2][2]*in_2[2][3] +
+//                 in_1[2][3]*in_2[3][3] + in_1[2][4]*in_2[4][3] + in_1[2][5]*in_2[5][3];
+//     out[2][4] = in_1[2][0]*in_2[0][4] + in_1[2][1]*in_2[1][4] + in_1[2][2]*in_2[2][4] +
+//                 in_1[2][3]*in_2[3][4] + in_1[2][4]*in_2[4][4] + in_1[2][5]*in_2[5][4];
+//     out[2][5] = in_1[2][0]*in_2[0][5] + in_1[2][1]*in_2[1][5] + in_1[2][2]*in_2[2][5] +
+//                 in_1[2][3]*in_2[3][5] + in_1[2][4]*in_2[4][5] + in_1[2][5]*in_2[5][5];
+
+//     out[3][0] = in_1[3][0]*in_2[0][0] + in_1[3][1]*in_2[1][0] + in_1[3][2]*in_2[2][0] +
+//                 in_1[3][3]*in_2[3][0] + in_1[3][4]*in_2[4][0] + in_1[3][5]*in_2[5][0];
+//     out[3][1] = in_1[3][0]*in_2[0][1] + in_1[3][1]*in_2[1][1] + in_1[3][2]*in_2[2][1] +
+//                 in_1[3][3]*in_2[3][1] + in_1[3][4]*in_2[4][1] + in_1[3][5]*in_2[5][1];
+//     out[3][2] = in_1[3][0]*in_2[0][2] + in_1[3][1]*in_2[1][2] + in_1[3][2]*in_2[2][2] +
+//                 in_1[3][3]*in_2[3][2] + in_1[3][4]*in_2[4][2] + in_1[3][5]*in_2[5][2];
+//     out[3][3] = in_1[3][0]*in_2[0][3] + in_1[3][1]*in_2[1][3] + in_1[3][2]*in_2[2][3] +
+//                 in_1[3][3]*in_2[3][3] + in_1[3][4]*in_2[4][3] + in_1[3][5]*in_2[5][3];
+//     out[3][4] = in_1[3][0]*in_2[0][4] + in_1[3][1]*in_2[1][4] + in_1[3][2]*in_2[2][4] +
+//                 in_1[3][3]*in_2[3][4] + in_1[3][4]*in_2[4][4] + in_1[3][5]*in_2[5][4];
+//     out[3][5] = in_1[3][0]*in_2[0][5] + in_1[3][1]*in_2[1][5] + in_1[3][2]*in_2[2][5] +
+//                 in_1[3][3]*in_2[3][5] + in_1[3][4]*in_2[4][5] + in_1[3][5]*in_2[5][5];
+
+//     out[4][0] = in_1[4][0]*in_2[0][0] + in_1[4][1]*in_2[1][0] + in_1[4][2]*in_2[2][0] +
+//                 in_1[4][3]*in_2[3][0] + in_1[4][4]*in_2[4][0] + in_1[4][5]*in_2[5][0];
+//     out[4][1] = in_1[4][0]*in_2[0][1] + in_1[4][1]*in_2[1][1] + in_1[4][2]*in_2[2][1] +
+//                 in_1[4][3]*in_2[3][1] + in_1[4][4]*in_2[4][1] + in_1[4][5]*in_2[5][1];
+//     out[4][2] = in_1[4][0]*in_2[0][2] + in_1[4][1]*in_2[1][2] + in_1[4][2]*in_2[2][2] +
+//                 in_1[4][3]*in_2[3][2] + in_1[4][4]*in_2[4][2] + in_1[4][5]*in_2[5][2];
+//     out[4][3] = in_1[4][0]*in_2[0][3] + in_1[4][1]*in_2[1][3] + in_1[4][2]*in_2[2][3] +
+//                 in_1[4][3]*in_2[3][3] + in_1[4][4]*in_2[4][3] + in_1[4][5]*in_2[5][3];
+//     out[4][4] = in_1[4][0]*in_2[0][4] + in_1[4][1]*in_2[1][4] + in_1[4][2]*in_2[2][4] +
+//                 in_1[4][3]*in_2[3][4] + in_1[4][4]*in_2[4][4] + in_1[4][5]*in_2[5][4];
+//     out[4][5] = in_1[4][0]*in_2[0][5] + in_1[4][1]*in_2[1][5] + in_1[4][2]*in_2[2][5] +
+//                 in_1[4][3]*in_2[3][5] + in_1[4][4]*in_2[4][5] + in_1[4][5]*in_2[5][5];
+
+//     out[5][0] = in_1[5][0]*in_2[0][0] + in_1[5][1]*in_2[1][0] + in_1[5][2]*in_2[2][0] +
+//                 in_1[5][3]*in_2[3][0] + in_1[5][4]*in_2[4][0] + in_1[5][5]*in_2[5][0];
+//     out[5][1] = in_1[5][0]*in_2[0][1] + in_1[5][1]*in_2[1][1] + in_1[5][2]*in_2[2][1] +
+//                 in_1[5][3]*in_2[3][1] + in_1[5][4]*in_2[4][1] + in_1[5][5]*in_2[5][1];
+//     out[5][2] = in_1[5][0]*in_2[0][2] + in_1[5][1]*in_2[1][2] + in_1[5][2]*in_2[2][2] +
+//                 in_1[5][3]*in_2[3][2] + in_1[5][4]*in_2[4][2] + in_1[5][5]*in_2[5][2];
+//     out[5][3] = in_1[5][0]*in_2[0][3] + in_1[5][1]*in_2[1][3] + in_1[5][2]*in_2[2][3] +
+//                 in_1[5][3]*in_2[3][3] + in_1[5][4]*in_2[4][3] + in_1[5][5]*in_2[5][3];
+//     out[5][4] = in_1[5][0]*in_2[0][4] + in_1[5][1]*in_2[1][4] + in_1[5][2]*in_2[2][4] +
+//                 in_1[5][3]*in_2[3][4] + in_1[5][4]*in_2[4][4] + in_1[5][5]*in_2[5][4];
+//     out[5][5] = in_1[5][0]*in_2[0][5] + in_1[5][1]*in_2[1][5] + in_1[5][2]*in_2[2][5] +
+//                 in_1[5][3]*in_2[3][5] + in_1[5][4]*in_2[4][5] + in_1[5][5]*in_2[5][5];
+
+// }
+
+//输出inv_D[i]，用于后向递推计算
+void back_pass(
+    const data_t I_spa[DOF][6][6],
+    const data_t p[DOF][6],
+    const data_t tau[DOF],
+    const data_t c[DOF][6],
+    const data_t E[DOF][3][3],
+    const data_t F[DOF][3][3],
+    data_t U[DOF][6],
+    data_t inv_D[DOF],
+    data_t u[DOF]
+)
+{
+#pragma HLS INLINE
+#pragma HLS ARRAY_PARTITION variable=I_spa complete dim=0
+#pragma HLS ARRAY_PARTITION variable=p complete dim=0
+#pragma HLS ARRAY_PARTITION variable=tau complete dim=1
+#pragma HLS ARRAY_PARTITION variable=c complete dim=0
+#pragma HLS ARRAY_PARTITION variable=E complete dim=0
+#pragma HLS ARRAY_PARTITION variable=F complete dim=0
+#pragma HLS ARRAY_PARTITION variable=U complete dim=0
+#pragma HLS ARRAY_PARTITION variable=inv_D complete dim=1
+#pragma HLS ARRAY_PARTITION variable=u complete dim=1
+
+    // Share the largest matrix-transform engine between the five calls made by
+    // the backward recursion instead of instantiating one engine per joint.
+#pragma HLS ALLOCATION function instances=transform_inertia_ef limit=1
+
+    // 当前关节数据
+    data_t IA_cur[6][6];
+    data_t Ia_cur[6][6];
+    data_t pA_cur[6];
+    data_t pa_cur[6];
+
+    // 子关节已经传播到当前关节坐标系的贡献
+    data_t child_I[6][6];
+    data_t child_p[6];
+
+#pragma HLS ARRAY_PARTITION variable=IA_cur complete dim=0
+#pragma HLS ARRAY_PARTITION variable=Ia_cur complete dim=0
+#pragma HLS ARRAY_PARTITION variable=pA_cur complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pa_cur complete dim=1
+#pragma HLS ARRAY_PARTITION variable=child_I complete dim=0
+#pragma HLS ARRAY_PARTITION variable=child_p complete dim=1
+
+    /*
+     * 第一轮计算末端关节。
+     * 末端没有子关节，所以子关节贡献初始化为零。
+     */
+    for (int r = 0; r < 6; r++)
+    {
+#pragma HLS UNROLL
+        child_p[r] = 0.0f;
+
+        for (int col = 0; col < 6; col++)
+        {
+#pragma HLS UNROLL
+            child_I[r][col] = 0.0f;
+        }
+    }
+
+    /*
+     * 从末端向基座递推：
+     * 5、4、3、2、1、0
+     */
+    for (int i = DOF - 1; i >= 0; i--)
+    {
+#pragma HLS UNROLL
+        /*
+         * 1. 当前关节的复合惯量和偏置力
+         *
+         * 末端第一轮child是零，所以自然得到：
+         * IA_cur = I_spa[5]
+         * pA_cur = p[5]
+         */
+        for (int r = 0; r < 6; r++)
+        {
+#pragma HLS UNROLL
+            pA_cur[r] =
+                p[i][r] + child_p[r];
+
+            for (int col = 0; col < 6; col++)
+            {
+#pragma HLS UNROLL
+                IA_cur[r][col] =
+                    I_spa[i][r][col] +
+                    child_I[r][col];
+            }
+        }
+
+        /*
+         * 2. U = IA*S
+         *
+         * S=[0,0,1,0,0,0]^T，
+         * 因此U就是IA的第2列。
+         */
+        for (int r = 0; r < 6; r++)
+        {
+#pragma HLS UNROLL
+            U[i][r] = IA_cur[r][2];
+        }
+
+        /*
+         * 3. 当前关节标量
+         */
+        const data_t D_cur = U[i][2];
+
+        inv_D[i] = 1.0f / D_cur;
+        u[i] = tau[i] - pA_cur[2];
+
+        /*
+         * 4. 关节消元后的惯量
+         *
+         * Ia = IA - U*U^T/D
+         */
+        for (int r = 0; r < 6; r++)
+        {
+#pragma HLS UNROLL
+            for (int col = 0; col < 6; col++)
+            {
+#pragma HLS UNROLL
+                Ia_cur[r][col] =
+                    IA_cur[r][col] -
+                    U[i][r] *
+                    U[i][col] *
+                    inv_D[i];
+            }
+        }
+
+        /*
+         * 5. 关节消元后的偏置力
+         *
+         * pa = pA + Ia*c + U*u/D
+         */
+        const data_t u_over_D =
+            u[i] * inv_D[i];
+
+        for (int r = 0; r < 6; r++)
+        {
+#pragma HLS UNROLL
+            const data_t s0 =
+                Ia_cur[r][0] * c[i][0] +
+                Ia_cur[r][1] * c[i][1];
+
+            const data_t s1 =
+                Ia_cur[r][3] * c[i][3] +
+                Ia_cur[r][4] * c[i][4];
+
+            const data_t Iac = s0 + s1;
+
+            pa_cur[r] =
+                pA_cur[r] +
+                Iac +
+                U[i][r] * u_over_D;
+        }
+
+        /*
+         * 6. 将当前关节结果传播给它的父关节
+         *
+         * 当前是关节i，父关节是i-1。
+         * 当i==0时已经没有父关节，所以不再传播。
+         */
+        if (i > 0)
+        {
+            transform_inertia_ef(
+                E[i],
+                F[i],
+                Ia_cur,
+                child_I
+            );
+
+            f_mat_cal(
+                E[i],
+                F[i],
+                pa_cur,
+                child_p
+            );
+        }
+    }
+}
